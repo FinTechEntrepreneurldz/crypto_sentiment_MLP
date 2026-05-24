@@ -1,0 +1,51 @@
+name: IBKR Dashboard Snapshot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    runs-on: self-hosted
+    env:
+      PYTHON_BIN: ${{ vars.PYTHON_BIN || '/Library/Frameworks/Python.framework/Versions/3.12/bin/python3' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          "$PYTHON_BIN" --version
+          "$PYTHON_BIN" -c 'import sys; print(sys.executable); print(sys.version); assert sys.version_info >= (3, 11), "Python 3.11+ is required"'
+          "$PYTHON_BIN" -m venv --clear .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -e .
+      - name: Write IBKR dashboard snapshot
+        env:
+          BROKER: ibkr
+          DRY_RUN: "false"
+          QSENTIA_ARTIFACT_DIR: ${{ vars.QSENTIA_ARTIFACT_DIR || 'artifacts/current' }}
+          IBKR_HOST: ${{ vars.IBKR_HOST || '127.0.0.1' }}
+          IBKR_PORT: ${{ vars.IBKR_PORT || '7497' }}
+          IBKR_CLIENT_ID: ${{ vars.IBKR_CLIENT_ID_SNAPSHOT || '38' }}
+          IBKR_ACCOUNT: ${{ secrets.IBKR_ACCOUNT }}
+          IBKR_EXCHANGE: ${{ vars.IBKR_EXCHANGE || 'CME' }}
+          IBKR_CONTRACT_SYMBOL: ${{ vars.IBKR_CONTRACT_SYMBOL || 'MBT' }}
+          IBKR_CURRENCY: ${{ vars.IBKR_CURRENCY || 'USD' }}
+        run: .venv/bin/python scripts/write_dashboard_snapshot.py
+      - name: Commit dashboard logs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs/portfolio/portfolio.csv
+          git add logs/decisions/latest_decision.csv logs/decisions/decisions.csv
+          git add logs/target_weights/latest_target_weights.csv logs/target_weights/target_weights.csv
+          git add logs/positions/latest_positions.csv
+          git add logs/orders/latest_planned_orders.csv logs/orders/latest_submitted_orders.csv
+          if [ -f logs/orders/submitted_orders.csv ]; then
+            git add logs/orders/submitted_orders.csv
+          fi
+          git add logs/health/health_status.json logs/health/signal_history.csv
+          if git diff --cached --quiet; then
+            echo "No dashboard log changes to commit."
+          else
+            git commit -m "Update dashboard snapshot [skip ci]"
+            git push
+          fi
