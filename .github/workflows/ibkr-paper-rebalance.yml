@@ -34,6 +34,10 @@ jobs:
         env:
           QSENTIA_ARTIFACT_DIR: ${{ vars.QSENTIA_ARTIFACT_DIR || 'artifacts/current' }}
         run: .venv/bin/python scripts/verify_artifacts.py
+      - name: Check live text sources
+        env:
+          LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
+        run: .venv/bin/python scripts/check_live_text.py --min-rows "$LIVE_TEXT_MIN_ROWS"
       - name: Run paper rebalance
         env:
           BROKER: ibkr
