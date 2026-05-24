@@ -103,3 +103,14 @@ Only set `ALLOW_LOW_LIVE_TEXT=true` for diagnostics, never for a real paper-trad
 ## Safety
 
 The default is `DRY_RUN=true`. The bot refuses to trade when exact live-state artifacts are missing unless `QSENTIA_ALLOW_APPROXIMATE_SIGNAL=true` is explicitly set.
+
+## Sizing
+
+When `DRY_RUN=false`, position sizing uses the current IBKR `NetLiquidation` value pulled at runtime, not a fixed starting balance. The default production-paper setting targets up to 90% gross exposure before confidence scaling:
+
+```text
+TARGET_GROSS_FRACTION=0.90
+MAX_CONTRACTS=150
+```
+
+For example, with `$1,000,000` net liquidation and model confidence `0.60`, the target notional is roughly `$540,000`. As the paper account grows or shrinks, the next workflow run recalculates from the updated IBKR net liquidation value.
