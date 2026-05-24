@@ -28,15 +28,42 @@ class ComponentSignals:
     ensemble_confidence: float
 
 
+def _base_tokenizer_name(artifacts: ArtifactStore) -> str:
+    metadata = artifacts.metadata()
+    return (
+        metadata.get("config", {})
+        .get("CONFIG", {})
+        .get("MODEL_NAME", "ElKulako/cryptobert")
+    )
+
+
+def _load_tokenizer(artifacts: ArtifactStore):
+    from transformers import AutoTokenizer
+
+    model_dir = artifacts.model_dir()
+    errors = []
+    for location, kwargs in [
+        (str(model_dir), {"use_fast": True}),
+        (str(model_dir), {"use_fast": False}),
+        (_base_tokenizer_name(artifacts), {"use_fast": True}),
+        (_base_tokenizer_name(artifacts), {"use_fast": False}),
+    ]:
+        try:
+            return AutoTokenizer.from_pretrained(location, **kwargs)
+        except Exception as exc:
+            errors.append(f"{location} {kwargs}: {type(exc).__name__}: {exc}")
+    raise RuntimeError("Could not load any tokenizer. Attempts:\n" + "\n".join(errors))
+
+
 def score_prompts(artifacts: ArtifactStore, prompts: list[str], batch_size: int = 64) -> np.ndarray:
     if not prompts:
         return np.zeros((0, 3), dtype=np.float32)
     import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    from transformers import AutoModelForSequenceClassification
 
     model_dir = artifacts.model_dir()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    tok = AutoTokenizer.from_pretrained(str(model_dir))
+    tok = _load_tokenizer(artifacts)
     model = AutoModelForSequenceClassification.from_pretrained(str(model_dir)).eval().to(device)
     probs = []
     with torch.no_grad():
@@ -111,14 +138,43 @@ def _mlp_signal(artifacts: ArtifactStore, x: np.ndarray) -> tuple[int, float, li
     return {0: -1, 1: 0, 2: 1}[cls], float(max(probs)), [float(v) for v in probs]
 
 
+def _patch_numpy_core_aliases() -> None:
+    # PPO artifacts were exported from a NumPy 2 runtime, whose pickle paths use
+    # numpy._core.*. The Intel Mac paper runner uses NumPy 1.26 for Torch wheel
+    # compatibility, where the same modules live under numpy.core.*.
+    import sys
+    import numpy.core
+    import numpy.core.multiarray
+    import numpy.core.numeric
+
+    sys.modules.setdefault("numpy._core", numpy.core)
+    sys.modules.setdefault("numpy._core.multiarray", numpy.core.multiarray)
+    sys.modules.setdefault("numpy._core.numeric", numpy.core.numeric)
+
+
 def _ppo_signal(artifacts: ArtifactStore, x: np.ndarray) -> tuple[int, float, float, list[float]]:
+    _patch_numpy_core_aliases()
+    import gymnasium as gym
     from stable_baselines3 import PPO
 
     obs = np.concatenate([x.astype(np.float32), np.array([0.0, 0.0], dtype=np.float32)])
+    custom_objects = {
+        # Avoid unpickling training-time Gym spaces/RNG objects saved from a
+        # different NumPy runtime. Prediction only needs compatible spaces.
+        "observation_space": gym.spaces.Box(low=-np.inf, high=np.inf, shape=obs.shape, dtype=np.float32),
+        "action_space": gym.spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32),
+        "_last_obs": None,
+        "_last_original_obs": None,
+        "_last_episode_starts": None,
+        "ep_info_buffer": [],
+        "ep_success_buffer": [],
+        "clip_range": lambda _: 0.2,
+        "lr_schedule": lambda _: 0.0003,
+    }
     actions = []
     for seed in [0, 1, 2]:
         path = artifacts.path(f"models/ppo/ppo_seed{seed}.zip")
-        model = PPO.load(str(path), device="cpu")
+        model = PPO.load(str(path), device="cpu", custom_objects=custom_objects)
         action, _ = model.predict(obs, deterministic=True)
         actions.append(float(np.clip(action[0], -1.0, 1.0)))
     pos = float(np.mean(actions))
