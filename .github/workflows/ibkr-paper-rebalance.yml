@@ -9,11 +9,13 @@ jobs:
   rebalance:
     runs-on: self-hosted
     env:
-      PYTHON_BIN: ${{ vars.PYTHON_BIN || 'python3' }}
+      PYTHON_BIN: ${{ vars.PYTHON_BIN || '/Library/Frameworks/Python.framework/Versions/3.12/bin/python3' }}
     steps:
       - uses: actions/checkout@v4
       - name: Install
         run: |
+          "$PYTHON_BIN" --version
+          "$PYTHON_BIN" -c 'import sys; print(sys.executable); print(sys.version); assert sys.version_info >= (3, 11), "Python 3.11+ is required for torch>=2.4 on this runner"'
           "$PYTHON_BIN" -m venv --clear .venv
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install --upgrade --upgrade-strategy eager -e ".[nlp]"
