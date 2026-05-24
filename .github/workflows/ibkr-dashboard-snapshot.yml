@@ -3,6 +3,9 @@ name: IBKR Dashboard Snapshot
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   snapshot:
     runs-on: self-hosted

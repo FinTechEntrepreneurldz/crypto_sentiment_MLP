@@ -6,6 +6,9 @@ on:
     - cron: "0 13 * * *" # 9:00 AM ET during EDT; adjust to 14:00 UTC during EST if needed.
     - cron: "30 19 * * *" # 3:30 PM ET during EDT; adjust to 20:30 UTC during EST if needed.
 
+permissions:
+  contents: write
+
 jobs:
   rebalance:
     runs-on: self-hosted
