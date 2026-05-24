@@ -1,2 +1,2 @@
 timestamp_utc,date,symbol,side,qty,delta_contracts,target_contracts,current_contracts,submitted,reason
-2026-05-24T15:49:32.588221+00:00,2026-05-24,MBTK6,HOLD,0,0,0,0,false,dashboard_snapshot_no_trade
+2026-05-24T21:18:54.202217+00:00,2026-05-24,MBTK6,SELL,100,-100,-100,0,true,target_from_signal
