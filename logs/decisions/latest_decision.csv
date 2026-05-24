@@ -1,0 +1,2 @@
+timestamp_utc,date,action,signal,signal_raw,confidence,btc_price,target_contracts,current_contracts,delta_contracts,order_submitted,portfolio_value,net_liquidation,account_status,method,live_text_rows,scored_text_rows,components_json,order_result_json
+2026-05-24T15:49:32.588221+00:00,2026-05-24,hold,FLAT,0,0.0,76655.7265625,0,0,0,false,1035453.59,1035453.59,connected,ibkr_account_dashboard_snapshot,,,null,"{""contract"":""MBTK6"",""qty"":0,""reason"":""dashboard_snapshot_no_trade"",""side"":""HOLD"",""submitted"":false}"

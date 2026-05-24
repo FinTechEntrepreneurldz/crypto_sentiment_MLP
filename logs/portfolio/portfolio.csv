@@ -1,0 +1,2 @@
+timestamp_utc,date,net_liquidation,net_liquidation_value,portfolio_value,equity,account_status,source,current_contracts,signal,confidence
+2026-05-24T15:49:32.588221+00:00,2026-05-24,1035453.59,1035453.59,1035453.59,1035453.59,connected,ibkr_net_liquidation,0,FLAT,0.0

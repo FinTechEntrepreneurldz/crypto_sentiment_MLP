@@ -1,0 +1,21 @@
+{
+  "updated_at_utc": "2026-05-24T15:49:32.588221+00:00",
+  "date": "2026-05-24",
+  "overall_status": "connected",
+  "account_status": "connected",
+  "net_liquidation": 1035453.59,
+  "net_liquidation_value": 1035453.59,
+  "portfolio_value": 1035453.59,
+  "equity": 1035453.59,
+  "source": "ibkr_net_liquidation",
+  "model": "Crypto Sentiment MLP/PPO \u2014 IBKR",
+  "strategy": "Ensemble Dual In-Out",
+  "signal": "FLAT",
+  "confidence": 0.0,
+  "target_contracts": 0,
+  "current_contracts": 0,
+  "delta_contracts": 0,
+  "submitted_order_count": 0,
+  "live_text_rows": null,
+  "scored_text_rows": null
+}

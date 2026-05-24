@@ -1,0 +1,2 @@
+timestamp_utc,date,account_status,net_liquidation,portfolio_value,signal,signal_raw,confidence,btc_price,target_contracts,components_json
+2026-05-24T15:49:32.588221+00:00,2026-05-24,connected,1035453.59,1035453.59,FLAT,0,0.0,76655.7265625,0,null
