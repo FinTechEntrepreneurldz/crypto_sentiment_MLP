@@ -18,9 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 nlp = [
-  "torch>=2.4,<2.6",
-  "transformers>=4.41,<4.53",
-  "stable-baselines3>=2.3,<2.6",
+  "torch>=2.2,<2.3",
+  "transformers==4.41.2",
+  "stable-baselines3==2.3.2",
 ]
 alpaca = [
   "alpaca-py>=0.30",
