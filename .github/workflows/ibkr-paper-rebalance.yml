@@ -3,7 +3,8 @@ name: IBKR Paper Rebalance
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 13 * * *" # 9 AM ET during EDT; adjust to 14:00 UTC during EST if needed.
+    - cron: "0 13 * * *" # 9:00 AM ET during EDT; adjust to 14:00 UTC during EST if needed.
+    - cron: "30 19 * * *" # 3:30 PM ET during EDT; adjust to 20:30 UTC during EST if needed.
 
 jobs:
   rebalance:
