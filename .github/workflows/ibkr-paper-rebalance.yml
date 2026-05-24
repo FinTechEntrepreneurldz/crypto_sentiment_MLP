@@ -14,9 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         run: |
-          "$PYTHON_BIN" -m venv .venv
+          "$PYTHON_BIN" -m venv --clear .venv
           .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -e ".[nlp]"
+          .venv/bin/python -m pip install --upgrade --upgrade-strategy eager -e ".[nlp]"
       - name: Optional import artifact zip
         env:
           QSENTIA_ARTIFACT_ZIP: ${{ vars.QSENTIA_ARTIFACT_ZIP }}
