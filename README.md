@@ -82,7 +82,7 @@ artifacts/current/live_state/
 Daily paper-trade flow:
 
 1. Pull recent BTC price data.
-2. Pull live no-auth sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, and GDELT.
+2. Pull live no-auth sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, GDELT, and capped Reddit RSS.
 3. Build the exact context-aware prompt used in the notebook: previous TBL label, ROC state, RSI state, and article text.
 4. Score live text with the exported fine-tuned CryptoBERT.
 5. Rebuild the exact 50-column daily feature row from `feature_schema.json`.
@@ -99,6 +99,15 @@ ALLOW_LOW_LIVE_TEXT=false
 ```
 
 Only set `ALLOW_LOW_LIVE_TEXT=true` for diagnostics, never for a real paper-trade schedule.
+
+Reddit is enabled by default through public RSS feeds for `r/Bitcoin`, `r/BitcoinMarkets`, and `r/CryptoCurrency`. Because the current model was trained before Reddit had its own feature columns, Reddit posts are scored with the same CryptoBERT pipeline and routed into the existing `hf_btc_tweets` social bucket plus the global `all__*` aggregate. Retrain later if you want Reddit to become a first-class source bucket.
+
+```bash
+ENABLE_REDDIT_RSS=true
+REDDIT_MAX_PER_FEED=20
+REDDIT_MAX_ROWS=45
+REDDIT_ENABLE_SEARCH_FEED=false
+```
 
 ## Safety
 

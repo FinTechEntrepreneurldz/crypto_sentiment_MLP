@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
+import os
 import re
 from typing import Iterable
 from urllib.parse import urlencode
@@ -31,6 +32,12 @@ SOURCE_ALIASES = {
     "news_bitcoincom": "gdelt",
     "news_yahoo_btc": "gdelt",
     "news_google_btc": "gdelt",
+    # Current live_state feature schema has no native Reddit columns yet.
+    # Route Reddit into the trained social BTC bucket until the next retrain.
+    "reddit_bitcoin": "hf_btc_tweets",
+    "reddit_bitcoinmarkets": "hf_btc_tweets",
+    "reddit_cryptocurrency": "hf_btc_tweets",
+    "reddit_btc_search": "hf_btc_tweets",
 }
 
 HTTP_HEADERS = {
@@ -70,9 +77,36 @@ GOOGLE_NEWS_FALLBACK_FEEDS = {
     "news_google_btc": _google_news_url("bitcoin OR BTC crypto when:1d"),
 }
 
+REDDIT_RSS_FEEDS = {
+    "reddit_bitcoin": "https://www.reddit.com/r/Bitcoin/new/.rss?limit=25",
+    "reddit_bitcoinmarkets": "https://www.reddit.com/r/BitcoinMarkets/new/.rss?limit=25",
+    "reddit_cryptocurrency": "https://www.reddit.com/r/CryptoCurrency/new/.rss?limit=25",
+}
+
+REDDIT_SEARCH_RSS_FEEDS = {
+    "reddit_btc_search": "https://www.reddit.com/search.rss?q=bitcoin%20OR%20BTC&sort=new&t=day",
+}
+
 
 def _canonical_source(source_name: str) -> str:
     return SOURCE_ALIASES.get(source_name, source_name)
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
 
 
 def _is_relevant(text: str) -> bool:
@@ -99,9 +133,10 @@ def _safe_published(value: object | None) -> str:
         return raw
 
 
-def _parse_feed(source_name: str, feed: str, timeout: int) -> tuple[list[TextItem], dict]:
+def _parse_feed(source_name: str, feed: str, timeout: int, max_entries: int = 75) -> tuple[list[TextItem], dict]:
     diag = {
         "source": source_name,
+        "canonical_source": _canonical_source(source_name),
         "url": feed,
         "http_status": None,
         "entries": 0,
@@ -123,7 +158,7 @@ def _parse_feed(source_name: str, feed: str, timeout: int) -> tuple[list[TextIte
     entries = list(getattr(parsed, "entries", []) or [])
     diag["entries"] = len(entries)
     rows: list[TextItem] = []
-    for item in entries[:75]:
+    for item in entries[:max_entries]:
         title = getattr(item, "title", "") or ""
         summary = getattr(item, "summary", "") or getattr(item, "description", "") or ""
         text = _clean_text(" ".join(str(x).strip() for x in [title, summary] if str(x).strip()))
@@ -191,6 +226,24 @@ def fetch_gdelt_items(timeout: int = 20) -> list[TextItem]:
     return rows
 
 
+def fetch_reddit_items(timeout: int = 20) -> tuple[list[TextItem], list[dict]]:
+    max_per_feed = _int_env("REDDIT_MAX_PER_FEED", 20)
+    max_total = _int_env("REDDIT_MAX_ROWS", 45)
+    rows: list[TextItem] = []
+    diagnostics: list[dict] = []
+    feeds = dict(REDDIT_RSS_FEEDS)
+    if _bool_env("REDDIT_ENABLE_SEARCH_FEED", False):
+        feeds.update(REDDIT_SEARCH_RSS_FEEDS)
+    for source_name, feed in feeds.items():
+        parsed_rows, diag = _parse_feed(source_name, feed, timeout=timeout, max_entries=max_per_feed)
+        diag["kind"] = "reddit_rss"
+        diag["max_entries"] = max_per_feed
+        diagnostics.append(diag)
+        rows.extend(parsed_rows)
+    rows = sorted(rows, key=lambda item: item.published_at)[-max_total:]
+    return rows, diagnostics
+
+
 def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
     items: list[TextItem] = []
     diagnostics: list[dict] = []
@@ -212,6 +265,13 @@ def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
         }
     )
     items.extend(gdelt_rows)
+
+    if _bool_env("ENABLE_REDDIT_RSS", True):
+        reddit_rows, reddit_diagnostics = fetch_reddit_items()
+        diagnostics.extend(reddit_diagnostics)
+        items.extend(reddit_rows)
+    else:
+        diagnostics.append({"source": "reddit", "kind": "reddit_rss", "kept": 0, "disabled": True})
 
     if not items:
         df = pd.DataFrame(columns=["published_at", "source", "text", "url"])
