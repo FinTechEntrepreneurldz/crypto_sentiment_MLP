@@ -54,3 +54,22 @@ jobs:
           LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
           ALLOW_LOW_LIVE_TEXT: ${{ vars.ALLOW_LOW_LIVE_TEXT || 'false' }}
         run: .venv/bin/python scripts/run_rebalance.py --submit
+      - name: Commit dashboard logs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs/portfolio/portfolio.csv
+          git add logs/decisions/latest_decision.csv logs/decisions/decisions.csv
+          git add logs/target_weights/latest_target_weights.csv logs/target_weights/target_weights.csv
+          git add logs/positions/latest_positions.csv
+          git add logs/orders/latest_planned_orders.csv logs/orders/latest_submitted_orders.csv
+          if [ -f logs/orders/submitted_orders.csv ]; then
+            git add logs/orders/submitted_orders.csv
+          fi
+          git add logs/health/health_status.json logs/health/signal_history.csv
+          if git diff --cached --quiet; then
+            echo "No dashboard log changes to commit."
+          else
+            git commit -m "Update dashboard logs [skip ci]"
+            git push
+          fi

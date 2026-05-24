@@ -8,6 +8,7 @@ from pathlib import Path
 
 from qsentia_btc_sentiment_ensemble_ibkr.artifacts import ArtifactStore
 from qsentia_btc_sentiment_ensemble_ibkr.brokers import AlpacaShadowBroker, BrokerState, IBKRBroker
+from qsentia_btc_sentiment_ensemble_ibkr.dashboard_logs import write_dashboard_logs
 from qsentia_btc_sentiment_ensemble_ibkr.risk import target_mbt_contracts
 from qsentia_btc_sentiment_ensemble_ibkr.settings import load_settings
 from qsentia_btc_sentiment_ensemble_ibkr.signal_engine import SignalEngine, append_signal_log
@@ -63,6 +64,14 @@ def main() -> int:
     out = Path("logs") / f"rebalance_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    write_dashboard_logs(
+        "logs",
+        report=report,
+        signal=signal,
+        state=state,
+        target=target,
+        order_result=order_result,
+    )
     print(json.dumps(report, indent=2, default=str))
     return 0
 
