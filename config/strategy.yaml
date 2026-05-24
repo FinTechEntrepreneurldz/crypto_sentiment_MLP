@@ -1,0 +1,24 @@
+strategy:
+  name: qsentia_btc_sentiment_ensemble_dual_inout
+  selected_model_family: Ensemble
+  selected_signal_mode: Dual In-Out
+  research_oos_period: "2023-10-01 -> 2026-05-23"
+  research_oos_sharpe: 5.04
+  execution_target: ibkr_mbt_futures
+
+execution:
+  ibkr_contract:
+    symbol: MBT
+    secType: FUT
+    exchange: CME
+    currency: USD
+    multiplier_btc: 0.10
+  schedule:
+    timezone: America/New_York
+    preferred_time: "09:00"
+  safety:
+    dry_run_default: true
+    require_exact_live_state: true
+    no_trade_on_stale_signal: true
+    max_signal_age_hours: 30
+

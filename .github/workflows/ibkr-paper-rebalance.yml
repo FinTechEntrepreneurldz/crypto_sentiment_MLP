@@ -1,0 +1,49 @@
+name: IBKR Paper Rebalance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 13 * * *" # 9 AM ET during EDT; adjust to 14:00 UTC during EST if needed.
+
+jobs:
+  rebalance:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[nlp]"
+      - name: Optional import artifact zip
+        env:
+          QSENTIA_ARTIFACT_ZIP: ${{ vars.QSENTIA_ARTIFACT_ZIP }}
+          QSENTIA_LIVE_STATE_ZIP: ${{ vars.QSENTIA_LIVE_STATE_ZIP }}
+        run: |
+          if [ -n "${QSENTIA_ARTIFACT_ZIP:-}" ] && [ -f "$QSENTIA_ARTIFACT_ZIP" ]; then
+            python scripts/import_artifacts.py "$QSENTIA_ARTIFACT_ZIP"
+          fi
+          if [ -n "${QSENTIA_LIVE_STATE_ZIP:-}" ] && [ -f "$QSENTIA_LIVE_STATE_ZIP" ]; then
+            python scripts/import_live_state.py "$QSENTIA_LIVE_STATE_ZIP"
+          fi
+      - name: Verify artifacts
+        env:
+          QSENTIA_ARTIFACT_DIR: ${{ vars.QSENTIA_ARTIFACT_DIR || 'artifacts/current' }}
+        run: python scripts/verify_artifacts.py
+      - name: Run paper rebalance
+        env:
+          BROKER: ibkr
+          DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+          QSENTIA_ARTIFACT_DIR: ${{ vars.QSENTIA_ARTIFACT_DIR || 'artifacts/current' }}
+          IBKR_HOST: ${{ vars.IBKR_HOST || '127.0.0.1' }}
+          IBKR_PORT: ${{ vars.IBKR_PORT || '7497' }}
+          IBKR_CLIENT_ID: ${{ vars.IBKR_CLIENT_ID || '37' }}
+          IBKR_ACCOUNT: ${{ secrets.IBKR_ACCOUNT }}
+          TARGET_GROSS_FRACTION: ${{ vars.TARGET_GROSS_FRACTION || '0.25' }}
+          MAX_CONTRACTS: ${{ vars.MAX_CONTRACTS || '10' }}
+          ALLOW_SHORT: "true"
+          LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
+          ALLOW_LOW_LIVE_TEXT: ${{ vars.ALLOW_LOW_LIVE_TEXT || 'false' }}
+        run: python scripts/run_rebalance.py --submit

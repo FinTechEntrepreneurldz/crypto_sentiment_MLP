@@ -1,0 +1,35 @@
+[project]
+name = "qsentia-btc-sentiment-ensemble-ibkr"
+version = "0.1.0"
+description = "QSentia BTC sentiment ensemble paper trading via IBKR CME Micro Bitcoin futures."
+requires-python = ">=3.10"
+dependencies = [
+  "pandas>=2.0",
+  "numpy>=1.26",
+  "requests>=2.31",
+  "feedparser>=6.0",
+  "pydantic>=2.0",
+  "python-dotenv>=1.0",
+  "pyyaml>=6.0",
+  "yfinance>=0.2",
+  "ib-insync>=0.9.86",
+]
+
+[project.optional-dependencies]
+nlp = [
+  "torch",
+  "transformers>=4.41",
+  "stable-baselines3",
+]
+alpaca = [
+  "alpaca-py>=0.30",
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+

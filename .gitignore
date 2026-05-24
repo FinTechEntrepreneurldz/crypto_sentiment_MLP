@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+logs/
+artifacts/*
+!artifacts/.gitkeep
+*.zip
+*.pt
+*.safetensors
+*.parquet
+*.npy
+
