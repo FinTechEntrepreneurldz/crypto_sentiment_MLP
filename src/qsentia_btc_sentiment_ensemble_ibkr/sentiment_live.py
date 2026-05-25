@@ -109,6 +109,10 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _max_text_age_hours() -> int:
+    return max(1, _int_env("MAX_TEXT_AGE_HOURS", 48))
+
+
 def _is_relevant(text: str) -> bool:
     t = text.lower()
     return any(k in t for k in ("bitcoin", "btc", "crypto", "cryptocurrency", "digital asset"))
@@ -279,6 +283,20 @@ def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
         df = pd.DataFrame([item.__dict__ for item in items]).drop_duplicates(subset=["source", "text"])
         df["published_at"] = pd.to_datetime(df["published_at"], errors="coerce", utc=True)
         df = df.dropna(subset=["published_at", "text"])
+        before_recency = len(df)
+        now = pd.Timestamp.now(tz="UTC")
+        cutoff = now - pd.Timedelta(hours=_max_text_age_hours())
+        df = df[(df["published_at"] >= cutoff) & (df["published_at"] <= now + pd.Timedelta(hours=6))]
+        diagnostics.append(
+            {
+                "source": "recency_filter",
+                "kind": "recency_gate",
+                "max_age_hours": _max_text_age_hours(),
+                "input_rows": before_recency,
+                "kept": int(len(df)),
+                "dropped": int(before_recency - len(df)),
+            }
+        )
         df = df.sort_values("published_at")
 
     counts = df["source"].value_counts().to_dict() if len(df) else {}
