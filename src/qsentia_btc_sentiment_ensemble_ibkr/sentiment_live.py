@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
 import os
@@ -87,8 +87,19 @@ REDDIT_SEARCH_RSS_FEEDS = {
     "reddit_btc_search": "https://www.reddit.com/search.rss?q=bitcoin%20OR%20BTC&sort=new&t=day",
 }
 
+YOUTUBE_DEFAULT_QUERIES = [
+    ("youtube_btc_news", "bitcoin OR BTC cryptocurrency news"),
+    ("youtube_btc_analysis", "bitcoin BTC market analysis"),
+]
+
+YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+
 
 def _canonical_source(source_name: str) -> str:
+    if source_name.startswith("youtube_"):
+        # The current live feature schema has no native YouTube columns yet.
+        # Route video titles/descriptions into the trained BTC social bucket.
+        return "hf_btc_tweets"
     return SOURCE_ALIASES.get(source_name, source_name)
 
 
@@ -107,6 +118,18 @@ def _int_env(name: str, default: int) -> int:
         return int(raw)
     except ValueError:
         return default
+
+
+def _bounded_int_env(name: str, default: int, lo: int, hi: int) -> int:
+    return min(hi, max(lo, _int_env(name, default)))
+
+
+def _youtube_queries() -> list[tuple[str, str]]:
+    raw = os.getenv("YOUTUBE_QUERIES", "").strip()
+    if not raw:
+        return YOUTUBE_DEFAULT_QUERIES
+    queries = [q.strip() for q in raw.split("|") if q.strip()]
+    return [(f"youtube_custom_{i + 1}", q) for i, q in enumerate(queries)]
 
 
 def _max_text_age_hours() -> int:
@@ -286,6 +309,102 @@ def fetch_reddit_items(timeout: int = 20) -> tuple[list[TextItem], list[dict]]:
     return rows, diagnostics
 
 
+def fetch_youtube_items(timeout: int = 20) -> tuple[list[TextItem], list[dict]]:
+    diagnostics: list[dict] = []
+    if not _bool_env("ENABLE_YOUTUBE_API", True):
+        return [], [{"source": "youtube", "kind": "youtube_api", "kept": 0, "disabled": True}]
+
+    api_key = os.getenv("YOUTUBE_API_KEY", "").strip()
+    if not api_key:
+        return [], [{"source": "youtube", "kind": "youtube_api", "kept": 0, "missing_api_key": True}]
+
+    max_calls = _bounded_int_env("YOUTUBE_MAX_SEARCH_CALLS_PER_RUN", 2, 0, 5)
+    max_results = _bounded_int_env("YOUTUBE_MAX_RESULTS_PER_CALL", 25, 1, 50)
+    max_rows = _bounded_int_env("YOUTUBE_MAX_ROWS", 40, 1, 250)
+    published_after = (
+        datetime.now(timezone.utc) - timedelta(hours=_max_text_age_hours())
+    ).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    rows: list[TextItem] = []
+    for source_name, query in _youtube_queries()[:max_calls]:
+        start_len = len(rows)
+        diag = {
+            "source": source_name,
+            "canonical_source": _canonical_source(source_name),
+            "kind": "youtube_api",
+            "query": query,
+            "url": YOUTUBE_SEARCH_URL,
+            "http_status": None,
+            "entries": 0,
+            "kept": 0,
+            "dropped_low_signal": 0,
+            "expected_quota_units": 100,
+            "error": None,
+        }
+        params = {
+            "part": "snippet",
+            "type": "video",
+            "order": "date",
+            "maxResults": max_results,
+            "q": query,
+            "publishedAfter": published_after,
+            "relevanceLanguage": "en",
+            "regionCode": "US",
+            "safeSearch": "none",
+            "key": api_key,
+        }
+        try:
+            response = requests.get(YOUTUBE_SEARCH_URL, params=params, headers=HTTP_HEADERS, timeout=timeout)
+            diag["http_status"] = response.status_code
+            if not response.ok:
+                diag["error"] = response.text[:500]
+                diagnostics.append(diag)
+                continue
+            data = response.json()
+        except Exception as exc:
+            diag["error"] = f"{type(exc).__name__}: {exc}"
+            diagnostics.append(diag)
+            continue
+
+        videos = data.get("items", []) or []
+        diag["entries"] = len(videos)
+        for video in videos:
+            snippet = video.get("snippet", {}) or {}
+            title = snippet.get("title", "")
+            description = snippet.get("description", "")
+            channel = snippet.get("channelTitle", "")
+            text = _clean_text(f"{title}. {description}. Channel: {channel}")
+            if not text or not _is_relevant(text):
+                continue
+            if _is_low_signal_text(text):
+                diag["dropped_low_signal"] += 1
+                continue
+            video_id = ((video.get("id", {}) or {}).get("videoId") or "").strip()
+            rows.append(
+                TextItem(
+                    published_at=snippet.get("publishedAt", datetime.now(timezone.utc).isoformat()),
+                    source=_canonical_source(source_name),
+                    text=text[:2000],
+                    url=f"https://www.youtube.com/watch?v={video_id}" if video_id else None,
+                )
+            )
+        diag["kept"] = len(rows) - start_len
+        diagnostics.append(diag)
+
+    rows = sorted(rows, key=lambda item: item.published_at)[-max_rows:]
+    diagnostics.append(
+        {
+            "source": "youtube_quota_guard",
+            "kind": "quota_guard",
+            "search_calls": max_calls,
+            "estimated_quota_units": max_calls * 100,
+            "max_results_per_call": max_results,
+            "max_rows": max_rows,
+        }
+    )
+    return rows, diagnostics
+
+
 def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
     items: list[TextItem] = []
     diagnostics: list[dict] = []
@@ -314,6 +433,10 @@ def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
         items.extend(reddit_rows)
     else:
         diagnostics.append({"source": "reddit", "kind": "reddit_rss", "kept": 0, "disabled": True})
+
+    youtube_rows, youtube_diagnostics = fetch_youtube_items()
+    diagnostics.extend(youtube_diagnostics)
+    items.extend(youtube_rows)
 
     if not items:
         df = pd.DataFrame(columns=["published_at", "source", "text", "url"])

@@ -39,6 +39,12 @@ jobs:
       - name: Check live text sources
         env:
           LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          ENABLE_YOUTUBE_API: ${{ vars.ENABLE_YOUTUBE_API || 'true' }}
+          YOUTUBE_MAX_SEARCH_CALLS_PER_RUN: ${{ vars.YOUTUBE_MAX_SEARCH_CALLS_PER_RUN || '2' }}
+          YOUTUBE_MAX_RESULTS_PER_CALL: ${{ vars.YOUTUBE_MAX_RESULTS_PER_CALL || '25' }}
+          YOUTUBE_MAX_ROWS: ${{ vars.YOUTUBE_MAX_ROWS || '40' }}
+          YOUTUBE_QUERIES: ${{ vars.YOUTUBE_QUERIES }}
         run: .venv/bin/python scripts/check_live_text.py --min-rows "$LIVE_TEXT_MIN_ROWS"
       - name: Run paper rebalance
         env:
@@ -54,6 +60,12 @@ jobs:
           ALLOW_SHORT: "true"
           LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
           ALLOW_LOW_LIVE_TEXT: ${{ vars.ALLOW_LOW_LIVE_TEXT || 'false' }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          ENABLE_YOUTUBE_API: ${{ vars.ENABLE_YOUTUBE_API || 'true' }}
+          YOUTUBE_MAX_SEARCH_CALLS_PER_RUN: ${{ vars.YOUTUBE_MAX_SEARCH_CALLS_PER_RUN || '2' }}
+          YOUTUBE_MAX_RESULTS_PER_CALL: ${{ vars.YOUTUBE_MAX_RESULTS_PER_CALL || '25' }}
+          YOUTUBE_MAX_ROWS: ${{ vars.YOUTUBE_MAX_ROWS || '40' }}
+          YOUTUBE_QUERIES: ${{ vars.YOUTUBE_QUERIES }}
         run: .venv/bin/python scripts/run_rebalance.py --submit
       - name: Commit dashboard logs
         run: |

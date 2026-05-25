@@ -82,7 +82,7 @@ artifacts/current/live_state/
 Daily paper-trade flow:
 
 1. Pull recent BTC price data.
-2. Pull live no-auth sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, GDELT, and capped Reddit RSS.
+2. Pull live sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, GDELT, capped Reddit RSS, and optionally capped YouTube Data API search.
 3. Build the exact context-aware prompt used in the notebook: previous TBL label, ROC state, RSI state, and article text.
 4. Score live text with the exported fine-tuned CryptoBERT.
 5. Rebuild the exact 50-column daily feature row from `feature_schema.json`.
@@ -109,6 +109,26 @@ REDDIT_MAX_ROWS=45
 REDDIT_ENABLE_SEARCH_FEED=false
 MAX_TEXT_AGE_HOURS=48
 FILTER_LOW_SIGNAL_TEXT=true
+```
+
+YouTube is optional and uses the official YouTube Data API `search.list` endpoint. The default cap is two search calls per rebalance, about 200 quota units per run, against Google's default 10,000 unit/day project allocation. YouTube titles/descriptions are routed into the trained `hf_btc_tweets` BTC social bucket until the next source-aware retrain.
+
+GitHub setup:
+
+1. In Google Cloud Console, create or select a project.
+2. Enable **YouTube Data API v3**.
+3. Go to **APIs & Services -> Credentials -> Create credentials -> API key**.
+4. Optional but recommended: restrict the key to **YouTube Data API v3**.
+5. Add the key as a GitHub repository secret named `YOUTUBE_API_KEY`.
+
+Recommended GitHub variables:
+
+```bash
+ENABLE_YOUTUBE_API=true
+YOUTUBE_MAX_SEARCH_CALLS_PER_RUN=2
+YOUTUBE_MAX_RESULTS_PER_CALL=25
+YOUTUBE_MAX_ROWS=40
+YOUTUBE_QUERIES=bitcoin OR BTC cryptocurrency news|bitcoin BTC market analysis
 ```
 
 ## Safety

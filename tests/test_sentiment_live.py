@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
+from qsentia_btc_sentiment_ensemble_ibkr import sentiment_live
 from qsentia_btc_sentiment_ensemble_ibkr.sentiment_live import (
     _canonical_source,
     _dedupe_key,
+    fetch_youtube_items,
     _is_low_signal_text,
     _parse_feed,
 )
@@ -12,6 +14,11 @@ def test_reddit_sources_alias_to_trained_social_bucket():
     assert _canonical_source("reddit_bitcoin") == "hf_btc_tweets"
     assert _canonical_source("reddit_bitcoinmarkets") == "hf_btc_tweets"
     assert _canonical_source("reddit_cryptocurrency") == "hf_btc_tweets"
+
+
+def test_youtube_sources_alias_to_trained_social_bucket():
+    assert _canonical_source("youtube_btc_news") == "hf_btc_tweets"
+    assert _canonical_source("youtube_custom_1") == "hf_btc_tweets"
 
 
 def test_parse_reddit_like_feed_routes_to_social_bucket():
@@ -59,3 +66,61 @@ def test_duplicate_news_key_removes_publisher_suffix():
         "Bitcoin holds support - AOL.com"
     )
     assert _is_low_signal_text("BTC poker deposit match referral code")
+
+
+def test_youtube_disabled_does_not_require_api_key(monkeypatch):
+    monkeypatch.setenv("ENABLE_YOUTUBE_API", "false")
+    monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
+    rows, diagnostics = fetch_youtube_items(timeout=1)
+    assert rows == []
+    assert diagnostics[0]["disabled"] is True
+
+
+def test_youtube_missing_key_is_diagnostic_not_failure(monkeypatch):
+    monkeypatch.setenv("ENABLE_YOUTUBE_API", "true")
+    monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
+    rows, diagnostics = fetch_youtube_items(timeout=1)
+    assert rows == []
+    assert diagnostics[0]["missing_api_key"] is True
+
+
+def test_youtube_search_rows_are_capped_and_routed(monkeypatch):
+    class Response:
+        ok = True
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {
+                "items": [
+                    {
+                        "id": {"videoId": "abc123"},
+                        "snippet": {
+                            "publishedAt": datetime.now(timezone.utc).isoformat(),
+                            "title": "Bitcoin market update",
+                            "description": "BTC liquidity and crypto market structure.",
+                            "channelTitle": "QSentia Test",
+                        },
+                    }
+                ]
+            }
+
+    def fake_get(url, params, headers, timeout):
+        assert url == sentiment_live.YOUTUBE_SEARCH_URL
+        assert params["part"] == "snippet"
+        assert params["type"] == "video"
+        assert params["maxResults"] == 25
+        assert params["key"] == "test-key"
+        return Response()
+
+    monkeypatch.setenv("ENABLE_YOUTUBE_API", "true")
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-key")
+    monkeypatch.setenv("YOUTUBE_MAX_SEARCH_CALLS_PER_RUN", "1")
+    monkeypatch.setattr(sentiment_live.requests, "get", fake_get)
+
+    rows, diagnostics = fetch_youtube_items(timeout=1)
+    assert len(rows) == 1
+    assert rows[0].source == "hf_btc_tweets"
+    assert rows[0].url == "https://www.youtube.com/watch?v=abc123"
+    assert diagnostics[0]["kept"] == 1
+    assert diagnostics[-1]["estimated_quota_units"] == 100
