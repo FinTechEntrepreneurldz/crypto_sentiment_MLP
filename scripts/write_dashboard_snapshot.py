@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from qsentia_btc_sentiment_ensemble_ibkr.brokers import IBKRBroker
 from qsentia_btc_sentiment_ensemble_ibkr.dashboard_logs import write_dashboard_logs
 from qsentia_btc_sentiment_ensemble_ibkr.risk import TargetOrder
-from qsentia_btc_sentiment_ensemble_ibkr.settings import load_settings
+from qsentia_btc_sentiment_ensemble_ibkr.settings import account_fingerprint, load_settings
 
 
 def _latest_btc_price(fallback_ohlcv: Path) -> float:
@@ -93,6 +93,7 @@ def main() -> int:
         "snapshot_only": True,
         "net_liq": state.net_liq,
         "current_contracts": state.current_contracts,
+        "account_fingerprint": account_fingerprint(settings.ibkr_account),
     }
 
     write_dashboard_logs(
@@ -110,6 +111,7 @@ def main() -> int:
                 "ok": True,
                 "net_liq": state.net_liq,
                 "current_contracts": state.current_contracts,
+                "account_fingerprint": account_fingerprint(settings.ibkr_account),
                 "contract": contract_symbol,
                 "dashboard_logs": "logs",
                 "submitted_order": False,

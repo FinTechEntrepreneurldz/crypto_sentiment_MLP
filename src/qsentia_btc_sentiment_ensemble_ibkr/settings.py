@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,12 @@ def _bool(name: str, default: bool) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def account_fingerprint(account: str | None) -> str:
+    if not account:
+        return ""
+    return hashlib.sha256(account.encode("utf-8")).hexdigest()[:12]
 
 
 @dataclass(frozen=True)

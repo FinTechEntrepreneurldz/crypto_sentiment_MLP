@@ -40,6 +40,7 @@ def write_dashboard_logs(
     timestamp_utc = str(report["ts"])
     date_key = timestamp_utc[:10]
     account_status = "dry_run" if report.get("dry_run") else "connected"
+    account_fingerprint = str(report.get("account_fingerprint") or "")
     net_liq = float(state.net_liq)
     symbol = str(order_result.get("contract") or "MBT")
     side = str(order_result.get("side") or target.action).upper()
@@ -53,6 +54,7 @@ def write_dashboard_logs(
         "portfolio_value": net_liq,
         "equity": net_liq,
         "account_status": account_status,
+        "account_fingerprint": account_fingerprint,
         "source": "ibkr_net_liquidation" if not report.get("dry_run") else "dry_run_net_liquidation",
         "current_contracts": state.current_contracts,
         "signal": signal.label,
@@ -93,6 +95,7 @@ def write_dashboard_logs(
         "portfolio_value": net_liq,
         "net_liquidation": net_liq,
         "account_status": account_status,
+        "account_fingerprint": account_fingerprint,
         "method": signal.method,
         "live_text_rows": signal.metadata.get("live_text_rows"),
         "scored_text_rows": signal.metadata.get("scored_text_rows"),
@@ -157,6 +160,7 @@ def write_dashboard_logs(
         "date": date_key,
         "overall_status": account_status,
         "account_status": account_status,
+        "account_fingerprint": account_fingerprint,
         "net_liquidation": net_liq,
         "net_liquidation_value": net_liq,
         "portfolio_value": net_liq,
@@ -180,6 +184,7 @@ def write_dashboard_logs(
         "timestamp_utc": timestamp_utc,
         "date": date_key,
         "account_status": account_status,
+        "account_fingerprint": account_fingerprint,
         "net_liquidation": net_liq,
         "portfolio_value": net_liq,
         "signal": signal.label,
