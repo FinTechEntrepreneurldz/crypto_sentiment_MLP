@@ -1,2 +1,2 @@
 timestamp_utc,date,ticker,symbol,target_weight,target_contracts,current_contracts,delta_contracts,signal,confidence,btc_price,reason
-2026-05-24T22:04:18.264926+00:00,2026-05-24,MBTK6,MBTK6,-101,-101,0,-101,SHORT,0.3715973785901562,76428.6875,target_from_signal
+2026-05-25T02:22:58.130201+00:00,2026-05-25,MBTK6,MBTK6,-57,-57,-101,44,SHORT,0.21527645833846717,77169.9296875,target_from_signal
