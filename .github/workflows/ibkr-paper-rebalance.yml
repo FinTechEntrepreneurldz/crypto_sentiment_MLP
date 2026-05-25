@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 13 * * *" # 9:00 AM ET during EDT; adjust to 14:00 UTC during EST if needed.
-
 permissions:
   contents: write
 
