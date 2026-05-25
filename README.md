@@ -108,11 +108,12 @@ REDDIT_MAX_PER_FEED=20
 REDDIT_MAX_ROWS=45
 REDDIT_ENABLE_SEARCH_FEED=false
 MAX_TEXT_AGE_HOURS=48
+FILTER_LOW_SIGNAL_TEXT=true
 ```
 
 ## Safety
 
-The default is `DRY_RUN=true`. The bot refuses to trade when exact live-state artifacts are missing unless `QSENTIA_ALLOW_APPROXIMATE_SIGNAL=true` is explicitly set.
+The default is `DRY_RUN=true`. The bot refuses to trade when exact live-state artifacts are missing unless `QSENTIA_ALLOW_APPROXIMATE_SIGNAL=true` is explicitly set. Before submitting a new IBKR order, the live broker checks for existing open MBT orders and skips submission with `open_order_guard` if any are present, so a scheduled run should not stack on top of a still-pending manual/order workflow.
 
 ## Sizing
 

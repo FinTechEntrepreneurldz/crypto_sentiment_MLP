@@ -40,6 +40,33 @@ class IBKRBroker:
         active = sorted(details, key=lambda d: d.contract.lastTradeDateOrContractMonth)
         return active[0].contract
 
+    def _open_mbt_trades(self, ib) -> list[dict[str, Any]]:
+        account = self.settings.ibkr_account
+        ib.reqOpenOrders()
+        ib.sleep(1)
+        rows: list[dict[str, Any]] = []
+        for trade in ib.openTrades():
+            contract = trade.contract
+            order = trade.order
+            status = trade.orderStatus
+            if getattr(contract, "secType", "") != "FUT":
+                continue
+            if getattr(contract, "symbol", "") != self.settings.ibkr_contract_symbol:
+                continue
+            if account and getattr(order, "account", "") not in {"", account}:
+                continue
+            rows.append(
+                {
+                    "localSymbol": getattr(contract, "localSymbol", ""),
+                    "action": getattr(order, "action", ""),
+                    "totalQuantity": getattr(order, "totalQuantity", None),
+                    "status": getattr(status, "status", ""),
+                    "orderId": getattr(order, "orderId", None),
+                    "permId": getattr(order, "permId", None),
+                }
+            )
+        return rows
+
     def state(self) -> BrokerState:
         ib = self._connect()
         try:
@@ -67,6 +94,16 @@ class IBKRBroker:
 
         ib = self._connect()
         try:
+            open_trades = self._open_mbt_trades(ib)
+            if open_trades:
+                return {
+                    "submitted": False,
+                    "reason": "open_order_guard",
+                    "side": side,
+                    "qty": qty,
+                    "open_orders": len(open_trades),
+                    "open_order_details": open_trades,
+                }
             contract = self._front_mbt_contract(ib)
             order = MarketOrder(side, qty, account=self.settings.ibkr_account or "")
             trade = ib.placeOrder(contract, order)
@@ -97,4 +134,3 @@ class AlpacaShadowBroker:
             "reason": "alpaca_shadow_adapter_not_exact_for_dual_inout",
             "dry_run": dry_run,
         }
-

@@ -118,6 +118,40 @@ def _is_relevant(text: str) -> bool:
     return any(k in t for k in ("bitcoin", "btc", "crypto", "cryptocurrency", "digital asset"))
 
 
+LOW_SIGNAL_PATTERNS = [
+    r"\bpromo code\b",
+    r"\breferral(?:s| link| code)?\b",
+    r"\bdeposit match\b",
+    r"\bfor hire\b",
+    r"\bfreelance\b",
+    r"\bdiscount code\b",
+    r"\bgiveaway\b",
+    r"\bairdrop\b",
+    r"\bpoker\b",
+    r"\bcasino\b",
+    r"\bonlyfans\b",
+    r"\baccept(?:ed|s|ing)? crypto\b",
+    r"\bpayment(?:s)? accepted\b",
+]
+
+
+def _is_low_signal_text(text: str) -> bool:
+    if not _bool_env("FILTER_LOW_SIGNAL_TEXT", True):
+        return False
+    t = text.lower()
+    return any(re.search(pattern, t) for pattern in LOW_SIGNAL_PATTERNS)
+
+
+def _dedupe_key(text: str) -> str:
+    # Strip syndication/source suffixes so the same headline from multiple feeds
+    # does not overweight one story in the daily sentiment row.
+    text = text.split(" submitted by ")[0]
+    text = re.split(r"\s[-–—]\s", text, maxsplit=1)[0]
+    text = re.sub(r"https?://\S+", " ", text.lower())
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return " ".join(text.split())[:180]
+
+
 def _clean_text(text: str) -> str:
     text = unescape(text)
     text = re.sub(r"<[^>]+>", " ", text)
@@ -145,6 +179,7 @@ def _parse_feed(source_name: str, feed: str, timeout: int, max_entries: int = 75
         "http_status": None,
         "entries": 0,
         "kept": 0,
+        "dropped_low_signal": 0,
         "error": None,
     }
     try:
@@ -167,6 +202,9 @@ def _parse_feed(source_name: str, feed: str, timeout: int, max_entries: int = 75
         summary = getattr(item, "summary", "") or getattr(item, "description", "") or ""
         text = _clean_text(" ".join(str(x).strip() for x in [title, summary] if str(x).strip()))
         if not text or not _is_relevant(text):
+            continue
+        if _is_low_signal_text(text):
+            diag["dropped_low_signal"] += 1
             continue
         published = (
             getattr(item, "published", None)
@@ -295,6 +333,20 @@ def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
                 "input_rows": before_recency,
                 "kept": int(len(df)),
                 "dropped": int(before_recency - len(df)),
+            }
+        )
+        before_dedup = len(df)
+        if before_dedup:
+            df = df.assign(_dedupe_key=df["text"].astype(str).map(_dedupe_key))
+            df = df.sort_values("published_at").drop_duplicates(subset=["_dedupe_key"], keep="last")
+            df = df.drop(columns=["_dedupe_key"])
+        diagnostics.append(
+            {
+                "source": "semantic_dedupe",
+                "kind": "dedupe_gate",
+                "input_rows": before_dedup,
+                "kept": int(len(df)),
+                "dropped": int(before_dedup - len(df)),
             }
         )
         df = df.sort_values("published_at")
