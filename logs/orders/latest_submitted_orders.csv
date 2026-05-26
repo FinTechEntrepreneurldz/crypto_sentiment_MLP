@@ -1,2 +1,2 @@
 timestamp_utc,date,symbol,side,qty,status,id,client_order_id,submitted
-2026-05-26T19:29:56.176521+00:00,2026-05-26,MBTK6,BUY,29,Submitted,,,true
+2026-05-26T19:35:23.903235+00:00,2026-05-26,MBTK6,SELL,65,Submitted,,,true

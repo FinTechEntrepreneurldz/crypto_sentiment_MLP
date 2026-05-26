@@ -1,2 +1,2 @@
 timestamp_utc,date,symbol,side,qty,delta_contracts,target_contracts,current_contracts,submitted,reason
-2026-05-26T19:29:56.176521+00:00,2026-05-26,MBTK6,BUY,29,29,0,-29,true,flat_or_low_confidence
+2026-05-26T19:35:23.903235+00:00,2026-05-26,MBTK6,SELL,65,-65,-65,0,true,target_from_signal
