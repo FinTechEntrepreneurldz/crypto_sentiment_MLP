@@ -2,8 +2,6 @@ name: IBKR Paper Rebalance
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 20 * * 1-5" # 4:00 PM ET weekdays during EDT; use 21:00 UTC during EST.
 permissions:
   contents: write
 
