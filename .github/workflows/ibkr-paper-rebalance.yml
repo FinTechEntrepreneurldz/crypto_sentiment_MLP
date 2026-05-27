@@ -39,11 +39,13 @@ jobs:
           LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           ENABLE_YOUTUBE_API: ${{ vars.ENABLE_YOUTUBE_API || 'true' }}
+          REQUIRE_YOUTUBE_LIVE_TEXT: ${{ vars.REQUIRE_YOUTUBE_LIVE_TEXT || 'true' }}
+          YOUTUBE_MIN_ROWS: ${{ vars.YOUTUBE_MIN_ROWS || '5' }}
           YOUTUBE_MAX_SEARCH_CALLS_PER_RUN: ${{ vars.YOUTUBE_MAX_SEARCH_CALLS_PER_RUN || '2' }}
           YOUTUBE_MAX_RESULTS_PER_CALL: ${{ vars.YOUTUBE_MAX_RESULTS_PER_CALL || '25' }}
           YOUTUBE_MAX_ROWS: ${{ vars.YOUTUBE_MAX_ROWS || '40' }}
           YOUTUBE_QUERIES: ${{ vars.YOUTUBE_QUERIES }}
-        run: .venv/bin/python scripts/check_live_text.py --min-rows "$LIVE_TEXT_MIN_ROWS"
+        run: .venv/bin/python scripts/check_live_text.py --min-rows "$LIVE_TEXT_MIN_ROWS" --youtube-min-rows "$YOUTUBE_MIN_ROWS"
       - name: Run paper rebalance
         env:
           BROKER: ibkr
@@ -61,6 +63,8 @@ jobs:
           ALLOW_LOW_LIVE_TEXT: ${{ vars.ALLOW_LOW_LIVE_TEXT || 'false' }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           ENABLE_YOUTUBE_API: ${{ vars.ENABLE_YOUTUBE_API || 'true' }}
+          REQUIRE_YOUTUBE_LIVE_TEXT: ${{ vars.REQUIRE_YOUTUBE_LIVE_TEXT || 'true' }}
+          YOUTUBE_MIN_ROWS: ${{ vars.YOUTUBE_MIN_ROWS || '5' }}
           YOUTUBE_MAX_SEARCH_CALLS_PER_RUN: ${{ vars.YOUTUBE_MAX_SEARCH_CALLS_PER_RUN || '2' }}
           YOUTUBE_MAX_RESULTS_PER_CALL: ${{ vars.YOUTUBE_MAX_RESULTS_PER_CALL || '25' }}
           YOUTUBE_MAX_ROWS: ${{ vars.YOUTUBE_MAX_ROWS || '40' }}

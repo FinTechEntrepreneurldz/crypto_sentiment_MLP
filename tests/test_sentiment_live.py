@@ -4,6 +4,7 @@ from qsentia_btc_sentiment_ensemble_ibkr import sentiment_live
 from qsentia_btc_sentiment_ensemble_ibkr.sentiment_live import (
     _canonical_source,
     _dedupe_key,
+    _enforce_youtube_requirement,
     fetch_youtube_items,
     _is_low_signal_text,
     _parse_feed,
@@ -82,6 +83,27 @@ def test_youtube_missing_key_is_diagnostic_not_failure(monkeypatch):
     rows, diagnostics = fetch_youtube_items(timeout=1)
     assert rows == []
     assert diagnostics[0]["missing_api_key"] is True
+
+
+def test_youtube_requirement_fails_when_missing(monkeypatch):
+    monkeypatch.setenv("REQUIRE_YOUTUBE_LIVE_TEXT", "true")
+    monkeypatch.setenv("YOUTUBE_MIN_ROWS", "2")
+    diagnostics = [{"source": "youtube", "kind": "youtube_api", "kept": 0, "missing_api_key": True}]
+    try:
+        _enforce_youtube_requirement([], diagnostics)
+    except RuntimeError as exc:
+        assert "YouTube mandatory source gate failed" in str(exc)
+    else:
+        raise AssertionError("Expected mandatory YouTube gate failure")
+    assert diagnostics[-1]["source"] == "youtube_requirement"
+    assert diagnostics[-1]["passed"] is False
+
+
+def test_youtube_requirement_can_be_disabled_for_diagnostics(monkeypatch):
+    monkeypatch.setenv("REQUIRE_YOUTUBE_LIVE_TEXT", "false")
+    diagnostics = [{"source": "youtube", "kind": "youtube_api", "kept": 0}]
+    _enforce_youtube_requirement([], diagnostics)
+    assert diagnostics == [{"source": "youtube", "kind": "youtube_api", "kept": 0}]
 
 
 def test_youtube_search_rows_are_capped_and_routed(monkeypatch):

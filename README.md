@@ -82,7 +82,7 @@ artifacts/current/live_state/
 Daily paper-trade flow:
 
 1. Pull recent BTC price data.
-2. Pull live sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, GDELT, capped Reddit RSS, and optionally capped YouTube Data API search.
+2. Pull live sentiment sources: CoinDesk, Cointelegraph, Decrypt, Bitcoin Magazine, The Block, GDELT, capped Reddit RSS, and mandatory capped YouTube Data API search.
 3. Build the exact context-aware prompt used in the notebook: previous TBL label, ROC state, RSI state, and article text.
 4. Score live text with the exported fine-tuned CryptoBERT.
 5. Rebuild the exact 50-column daily feature row from `feature_schema.json`.
@@ -111,7 +111,7 @@ MAX_TEXT_AGE_HOURS=48
 FILTER_LOW_SIGNAL_TEXT=true
 ```
 
-YouTube is optional and uses the official YouTube Data API `search.list` endpoint. The default cap is two search calls per rebalance, about 200 quota units per run, against Google's default 10,000 unit/day project allocation. YouTube titles/descriptions are routed into the trained `hf_btc_tweets` BTC social bucket until the next source-aware retrain.
+YouTube is mandatory and uses the official YouTube Data API `search.list` endpoint. The default cap is two search calls per rebalance, about 200 quota units per run, against Google's default 10,000 unit/day project allocation. YouTube titles/descriptions are routed into the trained `hf_btc_tweets` BTC social bucket until the next source-aware retrain. If the API key is missing, quota fails, YouTube is disabled, or fewer than `YOUTUBE_MIN_ROWS` usable rows are returned, the rebalance fails instead of trading from stale/non-video sentiment.
 
 GitHub setup:
 
@@ -125,6 +125,8 @@ Recommended GitHub variables:
 
 ```bash
 ENABLE_YOUTUBE_API=true
+REQUIRE_YOUTUBE_LIVE_TEXT=true
+YOUTUBE_MIN_ROWS=5
 YOUTUBE_MAX_SEARCH_CALLS_PER_RUN=2
 YOUTUBE_MAX_RESULTS_PER_CALL=25
 YOUTUBE_MAX_ROWS=40

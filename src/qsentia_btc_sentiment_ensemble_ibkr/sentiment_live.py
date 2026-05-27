@@ -136,6 +136,10 @@ def _max_text_age_hours() -> int:
     return max(1, _int_env("MAX_TEXT_AGE_HOURS", 48))
 
 
+def _youtube_min_rows() -> int:
+    return max(1, _int_env("YOUTUBE_MIN_ROWS", 5))
+
+
 def _is_relevant(text: str) -> bool:
     t = text.lower()
     return any(k in t for k in ("bitcoin", "btc", "crypto", "cryptocurrency", "digital asset"))
@@ -405,6 +409,51 @@ def fetch_youtube_items(timeout: int = 20) -> tuple[list[TextItem], list[dict]]:
     return rows, diagnostics
 
 
+def _enforce_youtube_requirement(rows: list[TextItem], diagnostics: list[dict]) -> None:
+    if not _bool_env("REQUIRE_YOUTUBE_LIVE_TEXT", True):
+        return
+    min_rows = _youtube_min_rows()
+    kept = len(rows)
+    if kept >= min_rows:
+        diagnostics.append(
+            {
+                "source": "youtube_requirement",
+                "kind": "mandatory_source_gate",
+                "required": True,
+                "min_rows": min_rows,
+                "kept": kept,
+                "passed": True,
+            }
+        )
+        return
+
+    diagnostics.append(
+        {
+            "source": "youtube_requirement",
+            "kind": "mandatory_source_gate",
+            "required": True,
+            "min_rows": min_rows,
+            "kept": kept,
+            "passed": False,
+        }
+    )
+    reason = "YouTube mandatory source gate failed"
+    detail = next(
+        (
+            diag
+            for diag in diagnostics
+            if diag.get("source") == "youtube"
+            or str(diag.get("source", "")).startswith("youtube_")
+        ),
+        {},
+    )
+    raise RuntimeError(
+        f"{reason}: got {kept} YouTube rows, need at least {min_rows}. "
+        f"Check YOUTUBE_API_KEY, ENABLE_YOUTUBE_API, quota, query settings, and recency. "
+        f"Diagnostic: {detail}"
+    )
+
+
 def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
     items: list[TextItem] = []
     diagnostics: list[dict] = []
@@ -435,6 +484,7 @@ def collect_live_text_with_diagnostics() -> tuple[pd.DataFrame, list[dict]]:
         diagnostics.append({"source": "reddit", "kind": "reddit_rss", "kept": 0, "disabled": True})
 
     youtube_rows, youtube_diagnostics = fetch_youtube_items()
+    _enforce_youtube_requirement(youtube_rows, youtube_diagnostics)
     diagnostics.extend(youtube_diagnostics)
     items.extend(youtube_rows)
 
