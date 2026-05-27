@@ -1,2 +1,2 @@
 timestamp_utc,date,symbol,qty,current_contracts,target_contracts,market_value,current_price,side
-2026-05-26T19:35:23.903235+00:00,2026-05-26,MBTK6,-65,0,-65,-492887.3828125,75828.828125,short
+2026-05-27T20:10:08.504550+00:00,2026-05-27,MBTK6,0,-65,0,0.0,75088.0078125,flat
