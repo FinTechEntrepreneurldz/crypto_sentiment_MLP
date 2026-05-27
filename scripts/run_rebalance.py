@@ -51,6 +51,7 @@ def main() -> int:
         min_confidence=settings.min_confidence,
         current_contracts=state.current_contracts,
         tolerance_contracts=settings.rebalance_tolerance_contracts,
+        flatten_on_low_confidence=settings.flatten_on_low_confidence,
     )
     order_result = broker.submit_delta(target.delta_contracts, dry_run=dry_run)
     report = {

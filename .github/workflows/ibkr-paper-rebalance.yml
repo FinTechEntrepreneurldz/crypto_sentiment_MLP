@@ -55,6 +55,7 @@ jobs:
           IBKR_ACCOUNT: ${{ secrets.IBKR_ACCOUNT }}
           TARGET_GROSS_FRACTION: ${{ vars.TARGET_GROSS_FRACTION || '0.90' }}
           MAX_CONTRACTS: ${{ vars.MAX_CONTRACTS || '150' }}
+          FLATTEN_ON_LOW_CONFIDENCE: ${{ vars.FLATTEN_ON_LOW_CONFIDENCE || 'false' }}
           ALLOW_SHORT: "true"
           LIVE_TEXT_MIN_ROWS: ${{ vars.LIVE_TEXT_MIN_ROWS || '5' }}
           ALLOW_LOW_LIVE_TEXT: ${{ vars.ALLOW_LOW_LIVE_TEXT || 'false' }}

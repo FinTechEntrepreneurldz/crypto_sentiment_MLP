@@ -40,6 +40,7 @@ class Settings:
     target_gross_fraction: float
     max_contracts: int
     min_confidence: float
+    flatten_on_low_confidence: bool
     rebalance_tolerance_contracts: int
     allow_short: bool
     allow_approximate_signal: bool
@@ -69,6 +70,7 @@ def load_settings(env_path: str | Path = ".env") -> Settings:
         target_gross_fraction=float(os.getenv("TARGET_GROSS_FRACTION", "0.90")),
         max_contracts=int(os.getenv("MAX_CONTRACTS", "150")),
         min_confidence=float(os.getenv("MIN_CONFIDENCE", "0.10")),
+        flatten_on_low_confidence=_bool("FLATTEN_ON_LOW_CONFIDENCE", False),
         rebalance_tolerance_contracts=int(os.getenv("REBALANCE_TOLERANCE_CONTRACTS", "0")),
         allow_short=_bool("ALLOW_SHORT", True),
         allow_approximate_signal=_bool("QSENTIA_ALLOW_APPROXIMATE_SIGNAL", False),

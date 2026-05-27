@@ -26,10 +26,18 @@ def target_mbt_contracts(
     min_confidence: float,
     current_contracts: int = 0,
     tolerance_contracts: int = 0,
+    flatten_on_low_confidence: bool = False,
 ) -> TargetOrder:
-    if confidence < min_confidence or signal == 0:
+    if confidence < min_confidence:
+        if current_contracts != 0 and not flatten_on_low_confidence:
+            desired = current_contracts
+            reason = "hold_existing_low_confidence"
+        else:
+            desired = 0
+            reason = "flat_or_low_confidence"
+    elif signal == 0:
         desired = 0
-        reason = "flat_or_low_confidence"
+        reason = "flat_signal"
     elif signal < 0 and not allow_short:
         desired = 0
         reason = "short_signal_blocked"
@@ -57,4 +65,3 @@ def target_mbt_contracts(
         action=action,
         reason=reason,
     )
-

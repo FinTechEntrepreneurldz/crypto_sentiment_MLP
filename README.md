@@ -145,3 +145,9 @@ MAX_CONTRACTS=150
 ```
 
 For example, with `$1,000,000` net liquidation and model confidence `0.60`, the target notional is roughly `$540,000`. As the paper account grows or shrinks, the next workflow run recalculates from the updated IBKR net liquidation value.
+
+The bot does not flatten an existing BTC futures position merely because the latest confidence is a few basis points below the entry threshold. With the default below, low-confidence readings hold the existing position and submit no order. Set this to `true` only if you explicitly want weak/no-confidence readings to close the book.
+
+```text
+FLATTEN_ON_LOW_CONFIDENCE=false
+```
