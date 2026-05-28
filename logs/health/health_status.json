@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-05-28T03:42:56.704399+00:00",
+  "updated_at_utc": "2026-05-28T11:02:14.216507+00:00",
   "date": "2026-05-28",
   "overall_status": "connected",
   "account_status": "connected",
@@ -12,11 +12,11 @@
   "model": "Crypto Sentiment MLP/PPO \u2014 IBKR",
   "strategy": "Ensemble Dual In-Out",
   "signal": "SHORT",
-  "confidence": 0.0027073937702125107,
+  "confidence": 0.029063182998842994,
   "target_contracts": 0,
   "current_contracts": 0,
   "delta_contracts": 0,
   "submitted_order_count": 0,
-  "live_text_rows": 311,
-  "scored_text_rows": 311
+  "live_text_rows": 323,
+  "scored_text_rows": 323
 }
