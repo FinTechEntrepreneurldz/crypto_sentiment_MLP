@@ -69,6 +69,13 @@ jobs:
           YOUTUBE_MAX_RESULTS_PER_CALL: ${{ vars.YOUTUBE_MAX_RESULTS_PER_CALL || '25' }}
           YOUTUBE_MAX_ROWS: ${{ vars.YOUTUBE_MAX_ROWS || '40' }}
           YOUTUBE_QUERIES: ${{ vars.YOUTUBE_QUERIES }}
+          ENABLE_BTC_SHOCK_OVERRIDE: ${{ vars.ENABLE_BTC_SHOCK_OVERRIDE || 'true' }}
+          BTC_CRASH_RET_24H_THRESHOLD: ${{ vars.BTC_CRASH_RET_24H_THRESHOLD || '-0.025' }}
+          BTC_CRASH_RET_5D_THRESHOLD: ${{ vars.BTC_CRASH_RET_5D_THRESHOLD || '-0.04' }}
+          BTC_RALLY_RET_24H_THRESHOLD: ${{ vars.BTC_RALLY_RET_24H_THRESHOLD || '0.025' }}
+          BTC_RALLY_RET_5D_THRESHOLD: ${{ vars.BTC_RALLY_RET_5D_THRESHOLD || '0.04' }}
+          BTC_CRASH_OVERRIDE_CONFIDENCE: ${{ vars.BTC_CRASH_OVERRIDE_CONFIDENCE || '0.12' }}
+          BTC_RALLY_OVERRIDE_CONFIDENCE: ${{ vars.BTC_RALLY_OVERRIDE_CONFIDENCE || '0.12' }}
         run: .venv/bin/python scripts/run_rebalance.py --submit
       - name: Commit dashboard logs
         run: |

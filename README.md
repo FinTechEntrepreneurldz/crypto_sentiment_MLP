@@ -153,3 +153,22 @@ The bot does not flatten an existing BTC futures position merely because the lat
 ```text
 FLATTEN_ON_LOW_CONFIDENCE=false
 ```
+
+## BTC Shock Override
+
+The live model has a transparent BTC shock override for large moves that the daily MLP/PPO ensemble may underreact to. It is symmetric:
+
+- If BTC 24h return is below `-2.5%`, or 5-day return is below `-4.0%`, and the sentiment stack is not clearly bullish, the system forces a minimum SHORT confidence floor.
+- If BTC 24h return is above `+2.5%`, or 5-day return is above `+4.0%`, and the sentiment stack is not clearly bearish, the system forces a minimum LONG confidence floor.
+
+The override is still gated by fresh live text and mandatory YouTube. Details are written into `components_json` under `btc_shock_override`.
+
+```text
+ENABLE_BTC_SHOCK_OVERRIDE=true
+BTC_CRASH_RET_24H_THRESHOLD=-0.025
+BTC_CRASH_RET_5D_THRESHOLD=-0.04
+BTC_RALLY_RET_24H_THRESHOLD=0.025
+BTC_RALLY_RET_5D_THRESHOLD=0.04
+BTC_CRASH_OVERRIDE_CONFIDENCE=0.12
+BTC_RALLY_OVERRIDE_CONFIDENCE=0.12
+```
